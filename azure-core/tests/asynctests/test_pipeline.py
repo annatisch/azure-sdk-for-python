@@ -44,6 +44,7 @@ from azure.core.pipeline.transport.async_abc import (
 
 from azure.core.configuration import Configuration
 from azure.core.pipeline.transport.aiohttp import AioHttpTransport
+from azure.core.pipeline.transport.async_requests import TrioRequestsTransport
 from azure.core.pipeline.policies.universal import UserAgentPolicy
 
 import trio
@@ -118,16 +119,15 @@ async def test_conf_async_requests():
 
     assert response.http_response.status_code == 200
 
-@pytest.mark.skip("TODO: need AsyncPipelineRequestsHTTPSender and AsyncTrioRequestsHTTPSender")
 def test_conf_async_trio_requests():
 
     async def do():
-        conf = Configuration("http://bing.com/")
+        conf = Configuration()
         request = _TransportRequest("GET", "http://bing.com/")
         policies = [
             UserAgentPolicy("myusergant")
         ]
-        async with AsyncPipeline(AsyncPipelineRequestsHTTPSender(AsyncTrioRequestsHTTPSender(conf)), policies) as pipeline:
+        async with AsyncPipeline(TrioRequestsTransport(conf), policies) as pipeline:
             return await pipeline.run(request)
 
     response = trio.run(do)
