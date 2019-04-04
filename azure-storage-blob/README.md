@@ -160,8 +160,9 @@ azure.storage.blob.BlobType.BlockBlob
 azure.storage.blob.BlobType.PageBlob
 azure.storage.blob.BlobType.AppendBlob
 
-azure.storage.blob.PageBlobOptions(premium_page_blob_tier=None, sequence_number=None)
+azure.storage.blob.BlockOption(block_id)
 azure.storage.blob.AppendBlobOptions(maxsize_condition=None, appendpos_condition=None)
+azure.storage.blob.PageBlobOptions(premium_page_blob_tier=None, sequence_number=None)
 
 ## Lease
 
@@ -184,41 +185,6 @@ with client.aquire_lease('my_container') as lease:
     container = client.get_container('my_container')
     data = container.download('test_data')  # pass lease implicitly
     lease.renew()
-
-
-
-
-## Block blobs
-
-BlockBlobClient.upload_block(
-    block, block_id, validate_content=False, lease=None, timeout=None)
-
-BlockBlobClient.set_block_ids(
-    block_list, content_settings=None, metadata=None, validate_content=False, lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
-
-BlockBlobClient.get_block_ids(snapshot=None, block_list_type=None, lease_id=None, timeout=None)
-
-
-
-
-# Page specific
-PageBlobClient.get_page_ranges(snapshot=None, start_range=None, end_range=None, lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
-PageBlobClient.get_page_ranges_diff(
-    previous_snapshot, snapshot=None, start_range=None, end_range=None, lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
-PageBlobClient.set_sequence_number(
-    sequence_number_action, sequence_number=None, lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
-PageBlobClient.resize_blob(content_length, lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
-
-
-
-
-# Common update_blob - only for Page and Append
-PageBlobClient.update_page(
-    page, start_range, end_range, validate_content=False, lease=None, if_sequence_number_lte=None, if_sequence_number_lt=None, if_sequence_number_eq=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
-PageBlobClient.clear_page(
-    start_range, end_range, lease=None, if_sequence_number_lte=None, if_sequence_number_lt=None, if_sequence_number_eq=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
-AppendBlobClient.append_block(
-    block, validate_content=False, maxsize_condition=None, appendpos_condition=None, lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
 
 ## Scenarios
 
