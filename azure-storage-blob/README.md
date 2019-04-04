@@ -185,6 +185,7 @@ with client.aquire_lease('my_container') as lease:
     container = client.get_container('my_container')
     data = container.download('test_data')  # pass lease implicitly
     lease.renew()
+```
 
 ## Scenarios
 
