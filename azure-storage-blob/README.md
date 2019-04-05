@@ -44,8 +44,8 @@ BlobStorageClient.get_container_acl(container, lease=None, timeout=None)
 BlobStorageClient.set_container_acl(
     container, signed_identifiers=None, public_access=None lease=None, if_modified_since=None, if_unmodified_since=None, timeout=None)
 
-BlobStorageClient.exists(
-    container_name, blob_name=None, snapshot=None, timeout=None)
+# Returns a ContainerClient
+BlobStorageClient.get_container(container, lease=None, timeout=None)
 
 BlobStorageClient.delete_container(
     container, snapshot=None, lease=None, delete_snapshots=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
@@ -145,7 +145,7 @@ ContainerClient.snapshot_blob(
 ContainerClient.set_blob_tier(blob_name, blob_tier, timeout=None)
 
 # Returns a Lease object, that can be run in a context manager
-ContainerClient.acquire_lease(
+ContainerClient.acquire_blob_lease(
     blob_name,
     lease_duration=-1,
     proposed_lease_id=None,
