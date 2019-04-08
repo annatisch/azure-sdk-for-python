@@ -56,9 +56,6 @@ BlobStorageClient.get_container_acl(container, lease=None, timeout=None)
 BlobStorageClient.set_container_acl(
     container, signed_identifiers=None, public_access=None lease=None, if_modified_since=None, if_unmodified_since=None, timeout=None)
 
-# Returns a ContainerClient
-BlobStorageClient.get_container(container, lease=None, timeout=None)
-
 # Returns None
 BlobStorageClient.delete_container(
     container, snapshot=None, lease=None, delete_snapshots=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
@@ -73,12 +70,14 @@ BlobStorageClient.acquire_lease(
     if_match=None,
     if_none_match=None, timeout=None)
 
+# Returns a ContainerClient
+BlobStorageClient.get_container(container, lease=None, timeout=None)
 ```
 
 ## ContainerClient API
 ```python
 azure.storage.blob.ContainerClient(
-    account_name, credentials, container_name, configuration=None,
+    account_name, credentials, container_name, lease=None, configuration=None,
     protocol=DEFAULT_PROTOCOL, endpoint_suffix=SERVICE_HOST_BASE, custom_domain=None)
 
 azure.storage.blob.ContainerClient.from_url(
@@ -257,6 +256,7 @@ BlobStorageLease.change(
     proposed_lease_id, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
 
 #### Samples
+
 lease = client.aquire_lease('my_container'):
 client.get_container_properties('my_container', lease=lease)
 
@@ -264,6 +264,26 @@ with client.aquire_lease('my_container') as lease:
     container = client.get_container('my_container')
     data = container.download('test_data')  # pass lease implicitly
     lease.renew()
+
+```
+
+## Module level operations
+```python
+azure.storage.blob.upload_blob(blob_url, data, credentials=None, configuration=None)
+
+azure.storage.blob.download_blob(blob_url, credentials=None, configuration=None)
+
+#### Samples
+
+blob_url = "https://test.blob.core.windows.net/my-container/my-data?sp=rcwd&st=2019-04-03T16:09:33Z&se=2019-04-04T00:09:33Z&spr=https&sv=2018-03-28&sig=N1pX45xdn1jf8K3upPmxIAGCMx9SceAgfNf8X%2B16aBU%3D&sr=b"
+
+
+upload_blob(blob_url, upload_data)
+
+handle = download_blob(blob_url)
+with open(output_file, 'wb') as output_data:
+    for data in handle:
+        output_data.write(data)
 ```
 
 ## Scenarios
@@ -289,7 +309,7 @@ with open(output_file, 'wb') as output_data:
 
 #### Upload/download blob via BlobStorageClient
 ```python
-from azure.storage.blob import BlobStorageClient
+from azure.storage.blob import BlobStorageClient, BlobType
 
 storage_url = "https://test.blob.core.windows.net/?sv=2018-03-28&ss=b&srt=sco&sp=rwdlac&se=2019-04-04T00:17:18Z&st=2019-04-03T16:17:18Z&spr=https&sig=uJnCwe2fGQpTuiCJMH%2F%2B4PT0rrhS9kkvCEU7c2Gmjs4%3D"
 
@@ -298,6 +318,12 @@ container = storage.get_container("my-container")
 
 # Upload block blob to container
 container.upload("test-data", upload_data)
+
+# Upload page blob to container
+container.upload("test-data", upload_data, blob_type=BlobType.PageBlob)
+
+# Upload append blob to container
+container.upload("test-data", upload_data, blob_type=BlobType.AppendBlob)
 
 # Download blob from container
 handle = container.download("test-data")
@@ -326,7 +352,7 @@ for blob in container.list_blobs(prefix='/test'):
 from azure.storage.blob import BlobStorageClient
 
 creds = SharedKeyCredentials(account_name, acocunt_key)
-client = BlobStorageCient(account_name, account_key, credentials=creds)
+client = BlobStorageCient(account_name, credentials=creds)
 
 try:
     container = client.get_container('my-container')
@@ -339,20 +365,4 @@ if not client.exists('my-container'):
 
 for container in client.list_containers():
     client.delete_container(container)
-```
-
-### Upload/download directly with a blob SAS URL with write permissions (no client required).
-```python
-from azure.storage.blob import upload_blob, download_blob
-
-blob_url = "https://test.blob.core.windows.net/my-container/my-data?sp=rcwd&st=2019-04-03T16:09:33Z&se=2019-04-04T00:09:33Z&spr=https&sv=2018-03-28&sig=N1pX45xdn1jf8K3upPmxIAGCMx9SceAgfNf8X%2B16aBU%3D&sr=b"
-
-
-upload_blob(blob_url, upload_data, credentials=None, configuration=None)
-
-handle = download_blob(blob_url, credentials=None, configuration=None)
-
-with open(output_file, 'wb') as output_data:
-    for data in handle:
-        output_data.write(data)
 ```
