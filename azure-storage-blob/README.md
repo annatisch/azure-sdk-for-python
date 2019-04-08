@@ -122,7 +122,8 @@ azure.storage.blob.BlobType.BlockBlob
 azure.storage.blob.BlobType.PageBlob
 azure.storage.blob.BlobType.AppendBlob
 
-# By default, uploads as a BlockBlob, unless alternative blob_type_settings are specified.
+# By default, uploads as a BlockBlob, unless alternative blob_type is specified.
+# Returns blob-updated property dict (Etag and last modified
 ContainerClient.upload(
     blob_name,
     data=None,
