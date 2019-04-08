@@ -87,10 +87,10 @@ azure.storage.blob.ContainerClient.from_connection_string(
     conn_str, container_name, configuration=None)
 
 
-ContainerClient.make_url(blob_name=None, protocol=None, sas_token=None)
+ContainerClient.make_url(blob=None, protocol=None, sas_token=None)
 
 ContainerClient.generate_shared_access_signature(
-    blob_name=None, resource_types, permission, expiry, start=None, ip=None, protocol=None)
+    blob=None, resource_types, permission, expiry, start=None, ip=None, protocol=None)
 
 
 # Returns dict of account information (SKU and account type)
@@ -98,19 +98,19 @@ ContainerClient.get_account_infomation(timeout=None)
 
 # Returns BlobProperties (or dict?)
 ContainerClient.get_blob_properties(
-    blob_name, snapshot=None, lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
+    blob, snapshot=None, lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
 
 # Returns blob-updated property dict (Etag and last modified)
 ContainerClient.set_blob_properties(
-    blob_name, content_settings=None, lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
+    blob, content_settings=None, lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
 
 # Returns a dict of metadata
 ContainerClient.get_blob_metadata(
-    blob_name, snapshot=None, lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
+    blob, snapshot=None, lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
 
 # Returns blob-updated property dict (Etag and last modified)
 ContainerClient.set_blob_metadata(
-    blob_name, metadata=None, lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
+    blob, metadata=None, lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
 
 # Returns a iterable (auto-paging) response of BlobProperties
 ContainerClient.list_blobs(
@@ -125,7 +125,7 @@ azure.storage.blob.BlobType.AppendBlob
 # By default, uploads as a BlockBlob, unless alternative blob_type is specified.
 # Returns blob-updated property dict (Etag and last modified
 ContainerClient.upload(
-    blob_name,
+    blob,
     data=None,
     length=None,
     blob_type=BlobType.BlockBlob,
@@ -145,11 +145,11 @@ ContainerClient.upload(
 
 # Returns a data generator (stream)
 ContainerClient.download(
-    blob_name, snapshot=None, start_range=None, end_range=None, validate_content=False, lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
+    blob, snapshot=None, start_range=None, end_range=None, validate_content=False, lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
 
 # Returns a pollable object to check operation status and abort
 ContainerClient.copy_blob(
-    blob_name, copy_source,
+    blob, copy_source,
     metadata=None,
     source_if_modified_since=None,
     source_if_unmodified_since=None,
@@ -167,21 +167,21 @@ ContainerClient.copy_blob(
 
 # Returns None
 ContainerClient.delete_blob(
-    blob_name, snapshot=None, lease=None, delete_snapshots=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
+    blob, snapshot=None, lease=None, delete_snapshots=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
 
 # Returns None
-ContainerClient.undelete_blob(blob_name, timeout=None)
+ContainerClient.undelete_blob(blob, timeout=None)
 
 # Returns snapshot properties
 ContainerClient.snapshot_blob(
-    blob_name, metadata=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, lease=None, timeout=None)
+    blob, metadata=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, lease=None, timeout=None)
 
 # Returns None
-ContainerClient.set_blob_tier(blob_name, blob_tier, timeout=None)
+ContainerClient.set_blob_tier(blob, blob_tier, timeout=None)
 
 # Returns a Lease object, that can be run in a context manager
 ContainerClient.acquire_blob_lease(
-    blob_name,
+    blob,
     lease_duration=-1,
     proposed_lease_id=None,
     if_modified_since=None,
@@ -194,53 +194,53 @@ ContainerClient.acquire_blob_lease(
 
 # Returns None
 ContainerClient.blockblob_add_block(
-    blob_name, data, block_id, validate_content=False, lease=None, timeout=None)
+    blob, data, block_id, validate_content=False, lease=None, timeout=None)
 
 # Returns None
 ContainerClient.blobblob_add_block_from_url(
-    blob_name, copy_source_url, source_range_start, source_range_end, block_id, source_content_md5=None, lease=None, timeout=None)
+    blob, copy_source_url, source_range_start, source_range_end, block_id, source_content_md5=None, lease=None, timeout=None)
 
 # Returns a tuple of two sets - committed and uncommitted blocks
 ContainerClient.blockblob_get_block_ids(
-    blob_name, block_list_type=None, snapshot=None, lease=None, timeout=None)
+    blob, block_list_type=None, snapshot=None, lease=None, timeout=None)
 
 # Returns blob-updated property dict (Etag and last modified)
 ContainerClient.blockblob_set_block_ids(
-    blob_name, block_list, lease=None, content_settings=None, metadata=None, validate_content=False, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
+    blob, block_list, lease=None, content_settings=None, metadata=None, validate_content=False, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
 
 
 ########## Page blob specific operations ##########
 
 # Returns a list of page ranges
 ContainerClient.pageblob_get_page_ranges(
-    blob_name, start_range=None, end_range=None, snapshot=None, lease=None, previous_snapshot_diff=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
+    blob, start_range=None, end_range=None, snapshot=None, lease=None, previous_snapshot_diff=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
 
 # Returns blob-updated property dict (Etag and last modified)
 ContainerClient.pageblob_set_sequence_number(
-    blob_name, sequence_number_action, sequence_number=None, lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
+    blob, sequence_number_action, sequence_number=None, lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
 
 # Returns blob-updated property dict (Etag and last modified)
 ContainerClient.pageblob_resize_blob(
-    blob_name, content_length, lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
+    blob, content_length, lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
 
 # Returns blob-updated property dict (Etag and last modified)
 ContainerClient.pageblob_update_page(
-    blob_name, page, start_range, end_range, lease=None, validate_content=False, if_sequence_number_lte=None, if_sequence_number_lt=None, if_sequence_number_eq=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
+    blob, page, start_range, end_range, lease=None, validate_content=False, if_sequence_number_lte=None, if_sequence_number_lt=None, if_sequence_number_eq=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
 
 # Returns blob-updated property dict (Etag and last modified)
 ContainerClient.pageblob_clear_page(
-    blob_name, start_range, end_range, lease=None, if_sequence_number_lte=None, if_sequence_number_lt=None, if_sequence_number_eq=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
+    blob, start_range, end_range, lease=None, if_sequence_number_lte=None, if_sequence_number_lt=None, if_sequence_number_eq=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
 
 # Returns a pollable object to check operation status and abort
 ContainerClient.pageblob_incremental_copy(
-    blob_name, copy_source, metadata=None, destination_if_modified_since=None, destination_if_unmodified_since=None, destination_if_match=None, destination_if_none_match=None, destination_lease=None, source_lease=None, timeout=None):
+    blob, copy_source, metadata=None, destination_if_modified_since=None, destination_if_unmodified_since=None, destination_if_match=None, destination_if_none_match=None, destination_lease=None, source_lease=None, timeout=None):
 
 
 ########## Append blob specific operations #########
 
 # Returns blob-updated property dict (Etag, last modified, append offset, committed block count)
 ContainerClient.appendblob_append_block(
-    blob_name, data, validate_content=False, maxsize_condition=None, appendpos_condition=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
+    blob, data, validate_content=False, maxsize_condition=None, appendpos_condition=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
 ```
 
 ## Lease
