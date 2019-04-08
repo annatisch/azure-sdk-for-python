@@ -131,7 +131,7 @@ ContainerClient.upload(
     metadata=None,
     content_settings=None,
     validate_content=False,
-    lease_id=None,
+    lease=None,
     if_modified_since=None,
     if_unmodified_since=None,
     if_match=None,
@@ -158,8 +158,8 @@ ContainerClient.copy_blob(
     destination_if_unmodified_since=None,
     destination_if_match=None,
     destination_if_none_match=None,
-    destination_lease_id=None,
-    source_lease_id=None,
+    destination_lease=None,
+    source_lease=None,
     timeout=None,
     premium_page_blob_tier=None,  # Page only
     requires_sync=None)  # Block only
@@ -197,7 +197,7 @@ ContainerClient.blockblob_add_block(
 
 # Returns None
 ContainerClient.blobblob_add_block_from_url(
-    blob_name, copy_source_url, source_range_start, source_range_end, block_id, source_content_md5=None, lease_id=None, timeout=None)
+    blob_name, copy_source_url, source_range_start, source_range_end, block_id, source_content_md5=None, lease=None, timeout=None)
 
 # Returns a tuple of two sets - committed and uncommitted blocks
 ContainerClient.blockblob_get_block_ids(
@@ -232,7 +232,7 @@ ContainerClient.pageblob_clear_page(
 
 # Returns a pollable object to check operation status and abort
 ContainerClient.pageblob_incremental_copy(
-    blob_name, copy_source, metadata=None, destination_if_modified_since=None, destination_if_unmodified_since=None, destination_if_match=None, destination_if_none_match=None, destination_lease_id=None, source_lease_id=None, timeout=None):
+    blob_name, copy_source, metadata=None, destination_if_modified_since=None, destination_if_unmodified_since=None, destination_if_match=None, destination_if_none_match=None, destination_lease=None, source_lease=None, timeout=None):
 
 
 ########## Append blob specific operations #########
@@ -261,9 +261,11 @@ lease = client.aquire_lease('my_container'):
 client.get_container_properties('my_container', lease=lease)
 
 with client.aquire_lease('my_container') as lease:
-    container = client.get_container('my_container')
-    data = container.download('test_data')  # pass lease implicitly
+    container = client.get_container('my_container', lease=lease)
+
     lease.renew()
+    data = container.download('test_data', lease=lease)
+    # Lease is released on exiting the context
 
 ```
 
@@ -307,7 +309,7 @@ with open(output_file, 'wb') as output_data:
         output_data.write(data)
 ```
 
-#### Upload/download blob via BlobStorageClient
+### Upload/download blob via BlobStorageClient
 ```python
 from azure.storage.blob import BlobStorageClient, BlobType
 
