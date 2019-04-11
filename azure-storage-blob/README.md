@@ -101,23 +101,23 @@ ContainerClient.break_lease(
 ContainerClient.get_account_infomation(timeout=None)
 
 # Returns ContainerProperties
-BlobStorageClient.get_properties(container, lease=None, timeout=None)
+ContainerClient.get_container_properties(container, lease=None, timeout=None)
 
 # Returns metadata as dict
-BlobStorageClient.get_metadata(container, lease=None, timeout=None)
+ContainerClient.get_container_metadata(container, lease=None, timeout=None)
 
 # Returns container-updated property dict (Etag and last modified)
-BlobStorageClient.set_metadata(container, metadata=None, lease=None, if_modified_since=None, timeout=None)
+ContainerClient.set_container_metadata(container, metadata=None, lease=None, if_modified_since=None, timeout=None)
 
 # Returns access policies as a dict
-BlobStorageClient.get_acl(container, lease=None, timeout=None)
+ContainerClient.get_container_acl(container, lease=None, timeout=None)
 
 # Returns container-updated property dict (Etag and last modified)
-BlobStorageClient.set_acl(
+ContainerClient.set_container_acl(
     container, signed_identifiers=None, public_access=None lease=None, if_modified_since=None, if_unmodified_since=None, timeout=None)
 
 # Returns a iterable (auto-paging) response of BlobProperties
-ContainerClient.list_blob_properties(prefix=None, num_results=None, include=None, timeout=None)
+ContainerClient.list_blob_properties(prefix=None, include=None, timeout=None)
 
 # Returns a generator that honors directory hierarchy 
 ContainerClient.walk_blob_propertes(prefix=None, include=None, delimiter="/", timeout=None)
@@ -150,7 +150,7 @@ ContainerClient.upload(
 
 # Returns a data generator (stream)
 ContainerClient.download(
-    blob, snapshot=None, start_range=None, end_range=None, validate_content=False, lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
+    blob, snapshot=None, offset=None, length=None, validate_content=False, lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
 
 # Returns a pollable object to check operation status and abort
 ContainerClient.copy_blob(
@@ -194,19 +194,19 @@ ContainerClient.generate_shared_access_signature(
 
 
 # Returns BlobProperties
-BlobClient.get_properties(
+BlobClient.get_blob_properties(
     lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
 
 # Returns blob-updated property dict (Etag and last modified)
-BlobClient.set_properties(
+BlobClient.set_blob_properties(
     content_settings=None, lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
 
 # Returns a dict of metadata
-BlobClient.get_metadata(
+BlobClient.get_blob_metadata(
     lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
 
 # Returns blob-updated property dict (Etag and last modified)
-BlobClient.set_metadata(
+BlobClient.set_blob_metadata(
     metadata=None, lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
 
 # Returns snapshot properties
@@ -333,19 +333,19 @@ with container.aquire_lease() as lease:
 from azure.storage.blob import ContainerClient
 
 creds = SharedKeyCredentials(account_name, acocunt_key)
-client = ContainerClient(account_url, container_name, credentials=creds)
+container_client = ContainerClient(account_url, container_name, credentials=creds)
 
-# Upload block blob to container
-blob_client = container.upload("test-data", upload_data)
+# Upload block blob to container, returns a BlobCient for that blob
+blob_client = container_client.upload("test-data", upload_data)
 
-# Upload page blob to container
-blob_client = container.upload("test-data", upload_data, blob_type=BlobType.PageBlob)
+# Upload page blob to container, returns a BlobCient for that blob
+blob_client = container_client.upload("test-data", upload_data, blob_type=BlobType.PageBlob)
 
-# Upload append blob to container
-blob_client = container.upload("test-data", upload_data, blob_type=BlobType.AppendBlob)
+# Upload append blob to container, returns a BlobCient for that blob
+blob_client = container_client.upload("test-data", upload_data, blob_type=BlobType.AppendBlob)
 
-# Download blob from container
-handle = container.download("test-data")
+# Download blob from container, returns a BlobCient for that blob
+handle = container_client.download("test-data")
 
 # Consume data and write to file
 with open(output_file, 'wb') as output_data:
@@ -358,11 +358,11 @@ with open(output_file, 'wb') as output_data:
 from azure.storage.blob import BlobStorageClient, BlobType
 
 
-storage = BlobStorageClient.from_url(storage_url, credentials=None, configuration=None)
-container = storage.get_container_client("my-container")
+storage_client = BlobStorageClient.from_url(storage_url, credentials=None, configuration=None)
+container_client = storage_client.get_container_client("my-container")
 
 # Upload block blob to container
-container.upload("test-data", upload_data)
+container_client.upload("test-data", upload_data)
 
 ```
 
@@ -371,14 +371,14 @@ container.upload("test-data", upload_data)
 from azure.storage.blob import BlobStorageClient, SharedKeyCredentials
 
 creds = SharedKeyCredentials(account_name, acocunt_key)
-client = BlobStorageCient(account_name, credentials=creds)
+storage_client = BlobStorageCient(account_name, credentials=creds)
 
-container = client.get_container_client('my-container')
+container_client = storage_client.get_container_client('my-container')
 
-for blob in container.list_blob_properties(prefix='/test'):
+for blob in container_client.list_blob_properties(prefix='/test'):
     print(blob.metadata)
 
-for blob in container.walk_blob_properties():
+for blob in container_client.walk_blob_properties():
     try:
         print(blob.metadata)
     except AttributeError:
@@ -390,16 +390,32 @@ for blob in container.walk_blob_properties():
 from azure.storage.blob import BlobStorageClient
 
 creds = SharedKeyCredentials(account_name, acocunt_key)
-client = BlobStorageCient(account_url, credentials=creds)
+storage_client = BlobStorageCient(account_url, credentials=creds)
 
 try:
-    container = client.get_container_client('my-container')
-    container.upload("blob_name", upload_data)
+    container_client = storage_client.get_container_client('my-container')
+    container_client.upload("blob_name", upload_data)
 except ResourceNotFound:
-    container = client.create_container('my-container')
-    container.upload("blob_name", upload_data)
+    container_client = storage_client.create_container('my-container')
+    container_client.upload("blob_name", upload_data)
 
 
-for container in client.list_container_properties():
-    client.delete_container(container)
+for container in storage_client.list_container_properties():
+    storage_client.delete_container(container)
+```
+
+### Working directly with a blob URL
+```python
+blob_url = "https://test.blob.core.windows.net/my-container/my-data?sp=rcwd&st=2019-04-03T16:09:33Z&se=2019-04-04T00:09:33Z&spr=https&sv=2018-03-28&sig=N1pX45xdn1jf8K3upPmxIAGCMx9SceAgfNf8X%2B16aBU%3D&sr=b"
+
+# Upload to a blob
+from azure.core.storage.blob import upload_blob
+with open('my_file.txt', rb) as upload_data:
+    upload_blob(blob_url, upload_data)
+
+# Download a blob
+from azure.core.storage.blob import download_blob
+with open('my_file.txt', rb) as download_data:
+    for data in download_blob(blob_url):
+        download_data.write(data)
 ```
