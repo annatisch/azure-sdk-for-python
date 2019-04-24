@@ -11,7 +11,7 @@ It is intended that a user can either navigate the client hierarchy as needed, o
 
 The 3-tiered design is intended to separate out the functionality according to common user scenarios. For example, we anticipate the majority of users only using a ContainerClient, to navigate the contents of a container, download blobs and upload new ones. A ContainerClient represents a single container, although its existence is not confirmed until one attempts to run operations on that container.
 
-Account-level operations - including listing the containers within the account - exist on the BlobStorageClient, including creating new containers and deleting them. Creating containers with the BlobStorageClient also provides a simple means of getting a ContainerClient for that container to begin operating within that scope.
+Account-level operations - including listing the containers within the account - exist on the BlobServiceClient, including creating new containers and deleting them. Creating containers with the BlobServiceClient also provides a simple means of getting a ContainerClient for that container to begin operating within that scope.
 
 Navigating the client hierarchy in this way means that the configured pipeline is shared between clients to accommodate sharing an open connection pool.
 
@@ -29,43 +29,43 @@ azure.storage.blob.upload_blob(blob_url, data, credentials=None, configuration=N
 azure.storage.blob.download_blob(blob_url, credentials=None, configuration=None, **kwargs)
 ```
 
-## BlobStorageClient API
+## BlobServiceClient API
 ```python
-azure.storage.blob.BlobStorageClient(uri, credentials=None, configuration=None)
+azure.storage.blob.BlobServiceClient(uri, credentials=None, configuration=None)
 
-BlobStorageClient.make_url(container=None, protocol=None, sas_token=None)
+BlobServiceClient.make_url(protocol=None, sas_token=None)
 
-BlobStorageClient.generate_shared_access_signature(
-    container_name=None, resource_types, permission, expiry, start=None, ip=None, protocol=None)
+BlobServiceClient.generate_shared_access_signature(
+    resource_types, permission, expiry, start=None, ip=None, protocol=None)
 
 
 # Returns dict of account information (SKU and account type)
-BlobStorageClient.get_account_information(timeout=None)
+BlobServiceClient.get_account_information(timeout=None)
 
 # Returns ServiceStats 
-BlobStorageClient.get_service_stats(timeout=None)
+BlobServiceClient.get_service_stats(timeout=None)
 
 # Returns ServiceProperties (or dict?)
-BlobStorageClient.get_service_properties(timeout=None)
+BlobServiceClient.get_service_properties(timeout=None)
 
 # Returns None
-BlobStorageClient.set_service_properties(
+BlobServiceClient.set_service_properties(
     logging=None, hour_metrics=None, minute_metrics=None, cors=None, target_version=None, timeout=None, delete_retention_policy=None, static_website=None)
 
 # Returns a generator of container objects - with names, properties, etc
-BlobStorageClient.list_container_properties(
+BlobServiceClient.list_container_properties(
     prefix=None, num_results=None, include_metadata=False, marker=None, timeout=None)
 
 # Returns a ContainerClient
-BlobStorageClient.create_container(
+BlobServiceClient.create_container(
     container_name, metadata=None, public_access=None, timeout=None)
 
 # Returns None
-BlobStorageClient.delete_container(
-    container, snapshot=None, lease=None, delete_snapshots=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
+BlobServiceClient.delete_container(
+    container, lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
 
 # Returns a ContainerClient
-BlobStorageClient.get_container_client(container, snaphot=None)
+BlobServiceClient.get_container_client(container, snaphot=None)
 ```
 
 ## ContainerClient API
@@ -75,10 +75,18 @@ azure.storage.blob.ContainerClient(
     protocol=DEFAULT_PROTOCOL, endpoint_suffix=SERVICE_HOST_BASE, custom_domain=None)
 
 
-ContainerClient.make_url(blob=None, protocol=None, sas_token=None)
+ContainerClient.make_url(protocol=None, sas_token=None)
 
 ContainerClient.generate_shared_access_signature(
-    blob=None, resource_types, permission, expiry, start=None, ip=None, protocol=None)
+    resource_types, permission, expiry, start=None, ip=None, protocol=None)
+
+# Returns None
+ContainerClient.create_container(
+    metadata=None, public_access=None, timeout=None)
+
+# Returns None
+ContainerClient.delete_container(
+    lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
 
 # Returns a Lease object, that can be run in a context manager
 ContainerClient.acquire_lease(
@@ -129,8 +137,8 @@ azure.storage.blob.BlobType.AppendBlob
 
 # By default, uploads as a BlockBlob, unless alternative blob_type is specified.
 # Returns a BlobClient
-ContainerClient.upload(
-    blob,
+ContainerClient.upload_blob(
+    blobs,
     data=None,
     length=None,
     blob_type=BlobType.BlockBlob,
@@ -149,33 +157,12 @@ ContainerClient.upload(
     appendpos_condition=None)  # Append only
 
 # Returns a data generator (stream)
-ContainerClient.download(
-    blob, snapshot=None, offset=None, length=None, validate_content=False, lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
-
-# Returns a pollable object to check operation status and abort
-ContainerClient.copy_blob(
-    blob, copy_source,
-    metadata=None,
-    source_if_modified_since=None,
-    source_if_unmodified_since=None,
-    source_if_match=None,
-    source_if_none_match=None,
-    destination_if_modified_since=None,
-    destination_if_unmodified_since=None,
-    destination_if_match=None,
-    destination_if_none_match=None,
-    destination_lease=None,
-    source_lease=None,
-    timeout=None,
-    premium_page_blob_tier=None,  # Page only
-    requires_sync=None)  # Block only
+ContainerClient.download_blobs(
+    blobs, snapshot=None, offset=None, length=None, validate_content=False, lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
 
 # Returns None
-ContainerClient.delete_blob(
+ContainerClient.delete_blobs(
     blob, snapshot=None, lease=None, delete_snapshots=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
-
-# Returns None
-ContainerClient.undelete_blob(blob, timeout=None)
 
 # Returns a BlobClient
 ContainerClient.get_blob_client(blob, blob_type, snapshot=None)
@@ -192,6 +179,36 @@ ContainerClient.make_url(protocol=None, sas_token=None)
 ContainerClient.generate_shared_access_signature(
     resource_types, permission, expiry, start=None, ip=None, protocol=None)
 
+# By default, uploads as a BlockBlob, unless alternative blob_type is specified.
+# Returns a BlobClient
+ContainerClient.upload_blob(
+    data,
+    length=None,
+    blob_type=BlobType.BlockBlob,
+    metadata=None,
+    content_settings=None,
+    validate_content=False,
+    lease=None,
+    if_modified_since=None,
+    if_unmodified_since=None,
+    if_match=None,
+    if_none_match=None,
+    timeout=None,
+    premium_page_blob_tier=None,  # Page only
+    sequence_number=None  # Page only
+    maxsize_condition=None,  # Append only
+    appendpos_condition=None)  # Append only
+
+# Returns a data generator (stream)
+BlobClient.download_blob(
+    offset=None, length=None, validate_content=False, lease=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
+
+# Returns None
+BlobClient.delete_blob(
+    lease=None, delete_snapshots=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
+
+# Returns None
+BlobClient.undelete_blob(timeout=None)
 
 # Returns BlobProperties
 BlobClient.get_blob_properties(
@@ -212,6 +229,24 @@ BlobClient.set_blob_metadata(
 # Returns snapshot properties
 BlobClient.create_snapshot(
     metadata=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, lease=None, timeout=None)
+
+# Returns a pollable object to check operation status and abort
+BlobClient.copy_from_source(
+    copy_source,
+    metadata=None,
+    source_if_modified_since=None,
+    source_if_unmodified_since=None,
+    source_if_match=None,
+    source_if_none_match=None,
+    destination_if_modified_since=None,
+    destination_if_unmodified_since=None,
+    destination_if_match=None,
+    destination_if_none_match=None,
+    destination_lease=None,
+    source_lease=None,
+    timeout=None,
+    premium_page_blob_tier=None,  # Page only
+    requires_sync=None)  # Block only
 
 # Returns None
 BlobClient.set_tier(blob_tier, timeout=None)
@@ -328,94 +363,125 @@ with container.aquire_lease() as lease:
 
 ## Scenarios
 
-### Upload/download blob via ContainerClient
+### 1. Given a blob URL, upload data to it.
+```python
+import azure.storage.blob
+
+blob_url = "https://test.blob.core.windows.net/my-container/my-data?sp=rcwd&st=2019-04-03T16:09:33Z&se=2019-04-04T00:09:33Z&spr=https&sv=2018-03-28&sig=N1pX45xdn1jf8K3upPmxIAGCMx9SceAgfNf8X%2B16aBU%3D&sr=b"
+
+with open(upload_file, 'rb') as data:
+    azure.storage.blob.upload_blob(blob_url, data)
+```
+
+### 2. Given a blob URL, download data from it.
+```python
+import azure.storage.blob
+
+blob_url = "https://test.blob.core.windows.net/my-container/my-data?sp=rcwd&st=2019-04-03T16:09:33Z&se=2019-04-04T00:09:33Z&spr=https&sv=2018-03-28&sig=N1pX45xdn1jf8K3upPmxIAGCMx9SceAgfNf8X%2B16aBU%3D&sr=b"
+
+with open(download_file, 'wb') as output:
+    stream = azure.storage.blob.download_blob(blob_url)
+    for data in stream:
+        output.write(data)
+```
+
+### 3. Given a blob URL, upload data to the blob then inspect the properties and set metadata.
+```python
+from azure.storage.blob import BlobClient
+
+client = BlobClient(blob_url)
+
+with open(upload_file, 'rb') as data:
+    client.upload_blob(data)
+
+properties = client.get_blob_properties()
+client.set_blob_metadata({"Foo":"Bar"})
+```
+
+### 4. Given a blob URL, download data from it then delete it.
+```python
+from azure.storage.blob import BlobClient
+
+client = BlobClient(blob_url)
+
+with open(download_file, 'wb') as output:
+    stream = client.download_blob()
+    for data in stream:
+        output.write(data)
+
+client.delete_blob()
+```
+
+### 5. Given a container URL, enumerate the blobs in the container.
 ```python
 from azure.storage.blob import ContainerClient
 
-creds = SharedKeyCredentials(account_name, acocunt_key)
-container_client = ContainerClient(account_url, container_name, credentials=creds)
+container_url = "https://test.blob.core.windows.net/my-container?sp=rcwd&st=2019-04-03T16:09:33Z&se=2019-04-04T00:09:33Z&spr=https&sv=2018-03-28&sig=N1pX45xdn1jf8K3upPmxIAGCMx9SceAgfNf8X%2B16aBU%3D&sr=b"
 
-# Upload block blob to container, returns a BlobCient for that blob
-blob_client = container_client.upload("test-data", upload_data)
-
-# Upload page blob to container, returns a BlobCient for that blob
-blob_client = container_client.upload("test-data", upload_data, blob_type=BlobType.PageBlob)
-
-# Upload append blob to container, returns a BlobCient for that blob
-blob_client = container_client.upload("test-data", upload_data, blob_type=BlobType.AppendBlob)
-
-# Download blob from container, returns a BlobCient for that blob
-handle = container_client.download("test-data")
-
-# Consume data and write to file
-with open(output_file, 'wb') as output_data:
-    for data in handle:
-        output_data.write(data)
-```
-
-### Upload/download blob via BlobStorageClient
-```python
-from azure.storage.blob import BlobStorageClient, BlobType
-
-
-storage_client = BlobStorageClient.from_url(storage_url, credentials=None, configuration=None)
-container_client = storage_client.get_container_client("my-container")
-
-# Upload block blob to container
-container_client.upload("test-data", upload_data)
-
-```
-
-### Enumerate blobs in a container
-```python
-from azure.storage.blob import BlobStorageClient, SharedKeyCredentials
-
-creds = SharedKeyCredentials(account_name, acocunt_key)
-storage_client = BlobStorageCient(account_name, credentials=creds)
-
-container_client = storage_client.get_container_client('my-container')
+container_client = ContainerClient(container_url)
 
 for blob in container_client.list_blob_properties(prefix='/test'):
     print(blob.metadata)
-
-for blob in container_client.walk_blob_properties():
-    try:
-        print(blob.metadata)
-    except AttributeError:
-        print(list(blob))
 ```
 
-### Manage containers
+### 5. Given a storage account, credentials and a container name, create the container and set metadata.
 ```python
-from azure.storage.blob import BlobStorageClient
+from azure.storage.blob import ContainerClient, SharedKeyCredentials
 
-creds = SharedKeyCredentials(account_name, acocunt_key)
-storage_client = BlobStorageCient(account_url, credentials=creds)
+account_url = "https://test.blob.core.windows.net"
+creds = SharedKeyCredentials(...)
 
-try:
-    container_client = storage_client.get_container_client('my-container')
-    container_client.upload("blob_name", upload_data)
-except ResourceNotFound:
-    container_client = storage_client.create_container('my-container')
-    container_client.upload("blob_name", upload_data)
-
-
-for container in storage_client.list_container_properties():
-    storage_client.delete_container(container)
+client = ContainerClient(account_url, container="my-container", credentials=creds)
+client.create_container()
+client.set_container_metadata({"Foo": "Bar"})
 ```
 
-### Working directly with a blob URL
+### 6. Given a storage account, credentials and a container name, list and download all blobs with a certain prefix.
 ```python
-blob_url = "https://test.blob.core.windows.net/my-container/my-data?sp=rcwd&st=2019-04-03T16:09:33Z&se=2019-04-04T00:09:33Z&spr=https&sv=2018-03-28&sig=N1pX45xdn1jf8K3upPmxIAGCMx9SceAgfNf8X%2B16aBU%3D&sr=b"
+from azure.storage.blob import ContainerClient, SharedKeyCredentials
 
-# Upload to a blob
-from azure.core.storage.blob import upload_blob
-with open('my_file.txt', rb) as upload_data:
-    upload_blob(blob_url, upload_data)
+account_url = "https://test.blob.core.windows.net"
+creds = SharedKeyCredentials(...)
 
-# Download a blob
-from azure.core.storage.blob import download_blob
-with open('my_file.txt', rb) as download_data:
-    for data in download_blob(blob_url):
-        download_data.write(data)
+client = ContainerClient(account_url, container="my-container", credentials=creds)
+
+test_blobs = [b for b in container_client.list_blob_properties(prefix='/test')]
+container_client.download_blobs(test_blobs, destination)
+```
+
+### 7. Given a storage account URL, list containers and delete them all.
+```python
+from azure.storage.blob import BlobSerivceClient
+
+storage_url = "https://test.blob.core.windows.net?sp=rcwd&st=2019-04-03T16:09:33Z&se=2019-04-04T00:09:33Z&spr=https&sv=2018-03-28&sig=N1pX45xdn1jf8K3upPmxIAGCMx9SceAgfNf8X%2B16aBU%3D&sr=b"
+
+client = BlobServiceClient(storage_url)
+
+all_containers = list(client.list_container_properties())
+client.delete_containers(all_containers)
+```
+
+### 8. Given a storage account and credentials, create a container then upload data to it.
+```python
+from azure.storage.blob import BlobServiceClient, SharedKeyCredentials
+
+account_url = "https://test.blob.core.windows.net"
+creds = SharedKeyCredentials(...)
+
+client = ContainerClient(account_url, credentials=creds)
+container = client.create_container("my-container")
+
+container.upload_blobs(list_of_blob_data)
+```
+
+### 9. Given a blob URL, create a page blob and update its pages
+```python
+from azure.storage.blob import BlobClient, BlobType
+
+client = BlobClient(blob_url, blob_type=BlobType.PageBlob)
+client.create_blob(length=20000000)
+
+pages = client.get_page_ranges()
+for page in pages:
+    client.update_page(upload_data, **page)
 ```
