@@ -458,7 +458,25 @@ snapshot_client = BlobClient(new_snapshot)
 snapshot_properties = snapshot_client.get_properties()
 ```
 
-### 10. Given a blob URL, create a page blob and update its pages
+### 11. Given a block blob URL, replace a block in the blob.
+```python
+from base64 import b64encode
+from urllib.parse import quote
+
+from azure.storage.blob import BlobClient
+
+blob_client = BlobClient(blob_url)
+block_id = quote(b64encode(b"NewBlockID"))
+blob_client.add_block(b"some data", block_id)
+committed, uncommitted = blob_client.get_block_ids(block_type='all')
+
+# Take last uncommitted block and replace the first committed block.
+committed[0] = uncommitted[-1]
+blob_client.set_block_ids(committed)
+```
+
+
+### 12. Given a blob URL, create a page blob and update its pages
 ```python
 from azure.storage.blob import BlobClient, BlobType
 
