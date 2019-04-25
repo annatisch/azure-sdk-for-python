@@ -523,7 +523,7 @@ client = BlobServiceClient()
 with open(upload_file, 'rb') as data:
     client.upload_blob(blob_url, data, metadata={"Foo":"Bar"})
 
-properties = client.get_blob_properties()
+properties = client.get_blob_properties(blob_url)
 ```
 
 ### 4. Given a blob URL, delete it.
@@ -578,7 +578,7 @@ storage_url = "https://test.blob.core.windows.net?sp=rcwd&st=2019-04-03T16:09:33
 
 client = BlobServiceClient(storage_url)
 
-all_containers = client.list_container_properties()
+all_containers = client.list_container_properties("my-container")
 for container in all_containers:
     client.delete_container(container)
 ```
@@ -595,7 +595,7 @@ client.create_container("my-container")
 
 for input_file in list_of_file_paths:
     with open(input_file, 'rb') as data:
-        client.upload_blob(, "my-container", data)
+        client.upload_blob("my-container", input_file, data)
 ```
 
 ### 10. Given a blob URL, take a snapshot and check its properties.
@@ -624,7 +624,6 @@ committed, uncommitted = client.get_blob_block_ids(blob_url, block_type='all')
 committed[0] = uncommitted[-1]
 client.set_blob_block_ids(blob_url, committed)
 ```
-
 
 ### 12. Given a blob URL, create a page blob and update its pages
 ```python
