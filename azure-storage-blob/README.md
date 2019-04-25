@@ -397,7 +397,7 @@ container_url = "https://test.blob.core.windows.net/my-container?sp=rcwd&st=2019
 
 container_client = ContainerClient(container_url)
 
-for blob in container_client.list_blob_properties(prefix='/test'):
+for blob in container_client.list_blob_properties():
     print(blob.metadata)
 ```
 
@@ -499,4 +499,140 @@ blob_url = "https://test.blob.core.windows.net/my-container/my-data?sp=rcwd&st=2
 client = BlobServiceclient()
 with open(upload_file, 'rb') as data:
     client.upload_blob(blob_url, data)
+```
+
+### 2. Given a blob URL, download data from it.
+```python
+from azure.storage.blob import BlobServiceClient
+
+blob_url = "https://test.blob.core.windows.net/my-container/my-data?sp=rcwd&st=2019-04-03T16:09:33Z&se=2019-04-04T00:09:33Z&spr=https&sv=2018-03-28&sig=N1pX45xdn1jf8K3upPmxIAGCMx9SceAgfNf8X%2B16aBU%3D&sr=b"
+
+client = BlobServiceclient()
+with open(download_file, 'wb') as output:
+    stream = client.download_blob(blob_url, concurrent_threads=10)
+    for data in stream:
+        output.write(data)
+```
+
+### 3. Given a blob URL, upload data to the blob with metadata then inspect the properties.
+```python
+from azure.storage.blob import BlobServiceClient
+
+client = BlobServiceClient()
+
+with open(upload_file, 'rb') as data:
+    client.upload_blob(blob_url, data, metadata={"Foo":"Bar"})
+
+properties = client.get_blob_properties()
+```
+
+### 4. Given a blob URL, delete it.
+```python
+from azure.storage.blob import BlobServiceClient
+
+client = BlobServiceClient()
+client.delete_blob(blob_url)
+```
+
+### 5. Given a storage account, credentials and a container name, create the container and set metadata.
+```python
+from azure.storage.blob import BlobServiceClient, SharedKeyCredentials
+
+account_url = "https://test.blob.core.windows.net"
+creds = SharedKeyCredentials(...)
+
+client = BlobServiceClient(account_url, credentials=creds)
+container = client.create_container("my-container", metadata={"Foo": "Bar"})
+```
+
+### 6. Given a container URL, enumerate the blobs in the container.
+```python
+from azure.storage.blob import BlobServiceClient
+
+container_url = "https://test.blob.core.windows.net/my-container?sp=rcwd&st=2019-04-03T16:09:33Z&se=2019-04-04T00:09:33Z&spr=https&sv=2018-03-28&sig=N1pX45xdn1jf8K3upPmxIAGCMx9SceAgfNf8X%2B16aBU%3D&sr=b"
+
+client = BlobServiceClient()
+for blob in client.list_blob_properties(container_url):
+    print(blob.metadata)
+```
+
+### 7. Given a storage account, credentials and a container name, list and download all blobs.
+```python
+from azure.storage.blob import BlobServiceClient, SharedKeyCredentials
+
+account_url = "https://test.blob.core.windows.net"
+creds = SharedKeyCredentials(...)
+
+client = BlobServiceClient(account_url, credentials=creds)
+
+test_blobs = client.list_blob_properties("my-container")
+for blob in test_blobs:
+    stream = client.download_blob(blob)
+```
+
+### 8. Given a storage account URL, list containers and delete them all.
+```python
+from azure.storage.blob import BlobSerivceClient
+
+storage_url = "https://test.blob.core.windows.net?sp=rcwd&st=2019-04-03T16:09:33Z&se=2019-04-04T00:09:33Z&spr=https&sv=2018-03-28&sig=N1pX45xdn1jf8K3upPmxIAGCMx9SceAgfNf8X%2B16aBU%3D&sr=b"
+
+client = BlobServiceClient(storage_url)
+
+all_containers = client.list_container_properties()
+for container in all_containers:
+    client.delete_container(container)
+```
+
+### 9. Given a storage account and credentials, create a container then upload data to it.
+```python
+from azure.storage.blob import BlobServiceClient, SharedKeyCredentials
+
+account_url = "https://test.blob.core.windows.net"
+creds = SharedKeyCredentials(...)
+
+client = BlobServiceClient(account_url, credentials=creds)
+client.create_container("my-container")
+
+for input_file in list_of_file_paths:
+    with open(input_file, 'rb') as data:
+        client.upload_blob(, "my-container", data)
+```
+
+### 10. Given a blob URL, take a snapshot and check its properties.
+```python
+from azure.storage.blob import BlobServiceClient
+
+client = BlobServiceClient()
+new_snapshot = client.create_blob_snapshot(blob_url)
+snapshot_properties = client.get_blob_properties(blob_url, snapshot=new_snapshot.snapshot)
+```
+
+### 11. Given a block blob URL, replace a block in the blob.
+```python
+from base64 import b64encode
+from urllib.parse import quote
+
+from azure.storage.blob import BlobServiceClient
+
+client = BlobServiceClient()
+
+block_id = quote(b64encode(b"NewBlockID"))
+client.add_blob_block(blob_url, b"some data", block_id)
+committed, uncommitted = client.get_blob_block_ids(blob_url, block_type='all')
+
+# Take last uncommitted block and replace the first committed block.
+committed[0] = uncommitted[-1]
+client.set_blob_block_ids(blob_url, committed)
+```
+
+
+### 12. Given a blob URL, create a page blob and update its pages
+```python
+from azure.storage.blob import BlobServiceClient
+
+client.create_pageblob(blob_url, length=20000000)
+
+pages = client.get_page_ranges(blob_url)
+for page in pages:
+    client.update_page(blob_url, upload_data, **page)
 ```
