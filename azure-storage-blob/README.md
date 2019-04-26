@@ -15,7 +15,7 @@ Account-level operations - including listing the containers within the account -
 
 Navigating the client hierarchy in this way means that the configured pipeline is shared between clients to accommodate sharing an open connection pool.
 
-Lastly, the BlobClient provides a means of accessing and modifying the particulars of a specific blob. This includes constructing that blob in its type-appropraite steps (e.g. `add_block` with `set_block_ids` for a block blob). A BlobClient is type-aware, and as such this client is intended for people literate in Azure Storage terminology and know exactly what blob types they are working with and how to do so.
+Lastly, the BlobClient provides a means of accessing and modifying the particulars of a specific blob. This includes constructing that blob in its type-appropraite steps (e.g. `stage_block` with `commit_block_list` for a block blob). A BlobClient is type-aware, and as such this client is intended for people literate in Azure Storage terminology and know exactly what blob types they are working with and how to do so.
 
 While a user may have limited permissions to access the service according to one of these tiers - the operations performed by each client are not exclusively correlated to permissions.
 
@@ -199,7 +199,7 @@ BlobClient.create_snapshot(
     metadata=None, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, lease=None, timeout=None)
 
 # Returns a pollable object to check operation status and abort
-BlobClient.copy_from_source(
+BlobClient.copy_blob_from_source(
     copy_source,
     metadata=None,
     source_if_modified_since=None,
@@ -239,22 +239,22 @@ BlobClient.set_standard_blob_tier(standard_blob_tier, timeout=None)
 
 # Only works where type is BlockBlob, otherwise raises InvalidOperation
 # Returns None
-BlobClient.add_block(
-    data, block_id, validate_content=False, lease=None, timeout=None)
+BlobClient.stage_block(
+    block_id, data, validate_content=False, lease=None, timeout=None)
 
 # Only works where type is BlockBlob, otherwise raises InvalidOperation
 # Returns None
-BlobClient.add_block_from_url(
-    copy_source_url, source_range_start, source_range_end, block_id, source_content_md5=None, lease=None, timeout=None)
+BlobClient.stage_block_from_url(
+    block_id, copy_source_url, source_range_start, source_range_end, source_content_md5=None, lease=None, timeout=None)
 
 # Only works where type is BlockBlob, otherwise raises InvalidOperation
 # Returns a tuple of two sets - committed and uncommitted blocks
-BlobClient.get_block_ids(
+BlobClient.get_block_list(
     block_list_type=None, snapshot=None, lease=None, timeout=None)
 
 # Only works where type is BlockBlob, otherwise raises InvalidOperation
 # Returns blob-updated property dict (Etag and last modified)
-BlobClient.set_block_ids(
+BlobClient.commit_block_list(
     block_list, lease=None, content_settings=None, metadata=None, validate_content=False, if_modified_since=None, if_unmodified_since=None, if_match=None, if_none_match=None, timeout=None)
 
 # Only works where type is PageBlob, otherwise raises InvalidOperation
@@ -466,13 +466,16 @@ from urllib.parse import quote
 from azure.storage.blob import BlobClient
 
 blob_client = BlobClient(blob_url)
-block_id = quote(b64encode(b"NewBlockID"))
-blob_client.add_block(b"some data", block_id)
-committed, uncommitted = blob_client.get_block_ids(block_type='all')
+
+block_id = quote(b64encode(b"0003"))  # Check Go lib for whether to handle this inside API call.
+blob_client.stage_block(block_id, b"some data")
+
+committed, uncommitted = blob_client.get_block_list(block_type='all')
 
 # Take last uncommitted block and replace the first committed block.
-committed[0] = uncommitted[-1]
-blob_client.set_block_ids(committed)
+new_blocks = [c.block_id for c in committed]
+new_blocks[3] = block_id
+blob_client.commit_block_list(new_blocks)
 ```
 
 
@@ -481,11 +484,15 @@ blob_client.set_block_ids(committed)
 from azure.storage.blob import BlobClient, BlobType
 
 client = BlobClient(blob_url, blob_type=BlobType.PageBlob)
-client.create_pageblob(length=20000000)
+client.create_pageblob(length=51200)
+
+with open(some_file, 'rb') as data:
+    client.update_page(data.read(1536), start_range=1024, end_range=2560)
 
 pages = client.get_page_ranges()
 for page in pages:
-    client.update_page(upload_data, **page)
+    if not page.is_cleared:
+        client.clear_page(start_range=page.start, end_range=page.end)
 ```
 
 ## Scenarios with alternative flat API
@@ -616,22 +623,29 @@ from azure.storage.blob import BlobServiceClient
 
 client = BlobServiceClient()
 
-block_id = quote(b64encode(b"NewBlockID"))
-client.add_blob_block(blob_url, b"some data", block_id)
-committed, uncommitted = client.get_blob_block_ids(blob_url, block_type='all')
+block_id = quote(b64encode(b"0003"))  # Check Go lib for whether to handle this inside API call.
+client.stage_block(blob_url, block_id, b"some data")
+
+committed, uncommitted = client.get_block_list(blob_url, block_type='all')
 
 # Take last uncommitted block and replace the first committed block.
-committed[0] = uncommitted[-1]
-client.set_blob_block_ids(blob_url, committed)
+new_blocks = [c.block_id for c in committed]
+new_blocks[3] = block_id
+client.commit_block_list(blob_url, new_blocks)
 ```
 
 ### 12. Given a blob URL, create a page blob and update its pages
 ```python
 from azure.storage.blob import BlobServiceClient
 
-client.create_pageblob(blob_url, length=20000000)
+client = BlobServiceClient()
+client.create_pageblob(blob_url, length=51200)
+
+with open(some_file, 'rb') as data:
+    client.update_page(blob_url, data.read(1536), start_range=1024, end_range=2560)
 
 pages = client.get_page_ranges(blob_url)
 for page in pages:
-    client.update_page(blob_url, upload_data, **page)
+    if not page.is_cleared:
+        client.clear_page(blob_url, start_range=page.start, end_range=page.end)
 ```
