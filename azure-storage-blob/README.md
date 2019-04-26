@@ -7,15 +7,11 @@ The Blob storage API is spread across three clients; each corresponding to the c
 - A container
 - An individual blob.
 
-It is intended that a user can either navigate the client hierarchy as needed, or instantiate their desired client directly. In addition to this, the basic operations of upload and download can be found at the module level, whereby no client is needed.
+The 3-tiered design is intended to separate out the functionality according to the scope provided by storage URLs. Each client represents a single resource (Storage account, container or blob) and offers all operations available within that scope. It is intended that a user working with a URL to a particular resource can instantiate only that client directly, and navigate down the hierarchy as needed.
 
-The 3-tiered design is intended to separate out the functionality according to common user scenarios. For example, we anticipate the majority of users only using a ContainerClient, to navigate the contents of a container, download blobs and upload new ones. A ContainerClient represents a single container, although its existence is not confirmed until one attempts to run operations on that container.
+We have provided module level upload and download operations for the common scenario of a user, given a URL to a blob, wishes to upload or download data with this URL. These functions can be called without needing to instantiate any clients.
 
-Account-level operations - including listing the containers within the account - exist on the BlobServiceClient, including creating new containers and deleting them. Creating containers with the BlobServiceClient also provides a simple means of getting a ContainerClient for that container to begin operating within that scope.
-
-Navigating the client hierarchy in this way means that the configured pipeline is shared between clients to accommodate sharing an open connection pool.
-
-Lastly, the BlobClient provides a means of accessing and modifying the particulars of a specific blob. This includes constructing that blob in its type-appropraite steps (e.g. `stage_block` with `commit_block_list` for a block blob). A BlobClient is type-aware, and as such this client is intended for people literate in Azure Storage terminology and know exactly what blob types they are working with and how to do so.
+The BlobClient provides a means of accessing and modifying the particulars of a specific blob. This includes constructing that blob in its type-appropraite steps (e.g. `stage_block` with `commit_block_list` for a block blob). A BlobClient is type-aware, and as such this client is intended for people literate in Azure Storage terminology and know exactly what blob types they are working with and how to do so.
 
 While a user may have limited permissions to access the service according to one of these tiers - the operations performed by each client are not exclusively correlated to permissions.
 
