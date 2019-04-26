@@ -53,10 +53,6 @@ BlobServiceClient.list_container_properties(
     prefix=None, num_results=None, include_metadata=False, marker=None, timeout=None)
 
 # Returns a ContainerClient
-BlobServiceClient.create_container(
-    container, metadata=None, public_access=None, timeout=None)
-
-# Returns a ContainerClient
 BlobServiceClient.get_container_client(container, snaphot=None)
 ```
 
@@ -127,9 +123,8 @@ azure.storage.blob.BlobType.BlockBlob
 azure.storage.blob.BlobType.PageBlob
 azure.storage.blob.BlobType.AppendBlob
 
-
 # Returns a BlobClient
-ContainerClient.get_blob_client(blob, blob_type, snapshot=None)
+ContainerClient.get_blob_client(blob, blob_type=BlobType.BlockBlob, snapshot=None)
 ```
 
 ## BlobClient API
