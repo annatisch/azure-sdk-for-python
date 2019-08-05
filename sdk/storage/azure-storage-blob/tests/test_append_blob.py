@@ -603,7 +603,7 @@ class StorageAppendBlobTest(StorageTestCase):
 
         # Assert
     def test_environment_variable(self):
-        print("Here is the envar: ")
+        print("here is the envar: ")
         print(os.getenv("TEST_MODE"))
 
 #------------------------------------------------------------------------------
