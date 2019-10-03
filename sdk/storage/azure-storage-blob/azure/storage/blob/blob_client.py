@@ -356,7 +356,7 @@ class BlobClient(StorageAccountHostsMixin):  # pylint: disable=too-many-public-m
             metadata=None,  # type: Optional[Dict[str, str]]
             content_settings=None,  # type: Optional[ContentSettings]
             validate_content=False,  # type: Optional[bool]
-            max_connections=1,  # type: int
+            max_concurrency=1,  # type: int
             **kwargs
         ):
         # type: (...) -> Dict[str, Any]
@@ -422,7 +422,7 @@ class BlobClient(StorageAccountHostsMixin):  # pylint: disable=too-many-public-m
         kwargs['headers'] = headers
         kwargs['validate_content'] = validate_content
         kwargs['blob_settings'] = self._config
-        kwargs['max_connections'] = max_connections
+        kwargs['max_concurrency'] = max_concurrency
         kwargs['encryption_options'] = encryption_options
         if blob_type == BlobType.BlockBlob:
             kwargs['client'] = self._client.block_blob
@@ -446,7 +446,7 @@ class BlobClient(StorageAccountHostsMixin):  # pylint: disable=too-many-public-m
             metadata=None,  # type: Optional[Dict[str, str]]
             content_settings=None,  # type: Optional[ContentSettings]
             validate_content=False,  # type: Optional[bool]
-            max_connections=1,  # type: int
+            max_concurrency=1,  # type: int
             **kwargs
         ):
         # type: (...) -> Any
@@ -507,13 +507,16 @@ class BlobClient(StorageAccountHostsMixin):  # pylint: disable=too-many-public-m
             A page blob tier value to set the blob to. The tier correlates to the size of the
             blob and number of allowed IOPS. This is only applicable to page blobs on
             premium storage accounts.
+        :param ~azure.storage.blob.models.StandardBlobTier standard_blob_tier:
+            A standard blob tier value to set the blob to. For this version of the library,
+            this is only applicable to block blobs on standard storage accounts.
         :param int maxsize_condition:
             Optional conditional header. The max length in bytes permitted for
             the append blob. If the Append Block operation would cause the blob
             to exceed that limit or if the blob size is already greater than the
             value specified in this header, the request will fail with
             MaxBlobSizeConditionNotMet error (HTTP status code 412 - Precondition Failed).
-        :param int max_connections:
+        :param int max_concurrency:
             Maximum number of parallel connections to use when the blob size exceeds
             64MB.
         :param ~azure.storage.blob.models.CustomerProvidedEncryptionKey cpk:
@@ -546,7 +549,7 @@ class BlobClient(StorageAccountHostsMixin):  # pylint: disable=too-many-public-m
             metadata=metadata,
             content_settings=content_settings,
             validate_content=validate_content,
-            max_connections=max_connections,
+            max_concurrency=max_concurrency,
             **kwargs)
         if blob_type == BlobType.BlockBlob:
             return upload_block_blob(**options)
@@ -670,7 +673,8 @@ class BlobClient(StorageAccountHostsMixin):  # pylint: disable=too-many-public-m
         }
         return StorageStreamDownloader(extra_properties=extra_properties, **options)
 
-    def _delete_blob_options(self, delete_snapshots=False, **kwargs):
+    @staticmethod
+    def _generic_delete_blob_options(delete_snapshots=False, **kwargs):
         # type: (bool, **Any) -> Dict[str, Any]
         access_conditions = get_access_conditions(kwargs.pop('lease', None))
         mod_conditions = ModifiedAccessConditions(
@@ -678,17 +682,22 @@ class BlobClient(StorageAccountHostsMixin):  # pylint: disable=too-many-public-m
             if_unmodified_since=kwargs.pop('if_unmodified_since', None),
             if_match=kwargs.pop('if_match', None),
             if_none_match=kwargs.pop('if_none_match', None))
-        if self.snapshot and delete_snapshots:
-            raise ValueError("The delete_snapshots option cannot be used with a specific snapshot.")
         if delete_snapshots:
             delete_snapshots = DeleteSnapshotsOptionType(delete_snapshots)
         options = {
             'timeout': kwargs.pop('timeout', None),
             'delete_snapshots': delete_snapshots or None,
-            'snapshot': self.snapshot,
             'lease_access_conditions': access_conditions,
             'modified_access_conditions': mod_conditions}
         options.update(kwargs)
+        return options
+
+    def _delete_blob_options(self, delete_snapshots=False, **kwargs):
+        # type: (bool, **Any) -> Dict[str, Any]
+        if self.snapshot and delete_snapshots:
+            raise ValueError("The delete_snapshots option cannot be used with a specific snapshot.")
+        options = self._generic_delete_blob_options(delete_snapshots, **kwargs)
+        options['snapshot'] = self.snapshot
         return options
 
     @distributed_trace
@@ -1341,9 +1350,9 @@ class BlobClient(StorageAccountHostsMixin):  # pylint: disable=too-many-public-m
                 headers['x-ms-source-lease-id'] = source_lease.id # type: str
             except AttributeError:
                 headers['x-ms-source-lease-id'] = source_lease
-        if kwargs.get('premium_page_blob_tier'):
-            premium_page_blob_tier = kwargs.pop('premium_page_blob_tier')
-            headers['x-ms-access-tier'] = premium_page_blob_tier.value
+
+        tier = kwargs.pop('premium_page_blob_tier', None) or kwargs.pop('standard_blob_tier', None)
+
         if kwargs.get('requires_sync'):
             headers['x-ms-requires-sync'] = str(kwargs.pop('requires_sync'))
 
@@ -1358,6 +1367,7 @@ class BlobClient(StorageAccountHostsMixin):  # pylint: disable=too-many-public-m
             'timeout': timeout,
             'modified_access_conditions': dest_mod_conditions,
             'headers': headers,
+            'tier': tier.value if tier else None,
             'cls': return_response_headers,
         }
         if not incremental_copy:
@@ -1499,6 +1509,11 @@ class BlobClient(StorageAccountHostsMixin):  # pylint: disable=too-many-public-m
             A page blob tier value to set the blob to. The tier correlates to the size of the
             blob and number of allowed IOPS. This is only applicable to page blobs on
             premium storage accounts.
+        :param ~azure.storage.blob.models.StandardBlobTier standard_blob_tier:
+            A standard blob tier value to set the blob to. For this version of the library,
+            this is only applicable to block blobs on standard storage accounts.
+        :param :class:`~azure.storage.blob.models.RehydratePriority` rehydrate_priority:
+            Indicates the priority with which to rehydrate an archived blob
         :param bool requires_sync:
             Enforces that the service will not return a response until the copy is complete.
         :returns: A dictionary of copy properties (etag, last_modified, copy_id, copy_status).
@@ -1525,7 +1540,7 @@ class BlobClient(StorageAccountHostsMixin):  # pylint: disable=too-many-public-m
             process_storage_error(error)
 
     def _abort_copy_options(self, copy_id, **kwargs):
-        # type: (Union[str, FileProperties], **Any) -> Dict[str, Any]
+        # type: (Union[str, Dict[str, Any], BlobProperties], **Any) -> Dict[str, Any]
         access_conditions = get_access_conditions(kwargs.pop('lease', None))
         try:
             copy_id = copy_id.copy.id
@@ -1543,7 +1558,7 @@ class BlobClient(StorageAccountHostsMixin):  # pylint: disable=too-many-public-m
 
     @distributed_trace
     def abort_copy(self, copy_id, **kwargs):
-        # type: (Union[str, BlobProperties], **Any) -> None
+        # type: (Union[str, Dict[str, Any], BlobProperties], **Any) -> None
         """Abort an ongoing copy operation.
 
         This will leave a destination blob with zero length and full metadata.
@@ -1640,6 +1655,8 @@ class BlobClient(StorageAccountHostsMixin):  # pylint: disable=too-many-public-m
             tier is optimized for storing data that is rarely accessed and stored
             for at least six months with flexible latency requirements.
         :type standard_blob_tier: str or ~azure.storage.blob.models.StandardBlobTier
+        :param :class:`~azure.storage.blob._generated.models.RehydratePriority` rehydrate_priority:
+            Indicates the priority with which to rehydrate an archived blob
         :param int timeout:
             The timeout parameter is expressed in seconds.
         :param lease:
@@ -1930,6 +1947,9 @@ class BlobClient(StorageAccountHostsMixin):  # pylint: disable=too-many-public-m
                 raise ValueError("Customer provided encryption key must be used over HTTPS.")
             cpk_info = CpkInfo(encryption_key=cpk.key_value, encryption_key_sha256=cpk.key_hash,
                                encryption_algorithm=cpk.algorithm)
+
+        tier = kwargs.pop('standard_blob_tier', None)
+
         options = {
             'blocks': block_lookup,
             'blob_http_headers': blob_headers,
@@ -1938,7 +1958,9 @@ class BlobClient(StorageAccountHostsMixin):  # pylint: disable=too-many-public-m
             'modified_access_conditions': mod_conditions,
             'cls': return_response_headers,
             'validate_content': validate_content,
-            'cpk_info': cpk_info}
+            'cpk_info': cpk_info,
+            'tier': tier.value if tier else None
+        }
         options.update(kwargs)
         return options
 
@@ -1993,6 +2015,9 @@ class BlobClient(StorageAccountHostsMixin):  # pylint: disable=too-many-public-m
             the value specified. Specify the wildcard character (*) to perform
             the operation only if the resource does not exist, and fail the
             operation if it does exist.
+        :param ~azure.storage.blob.models.StandardBlobTier standard_blob_tier:
+            A standard blob tier value to set the blob to. For this version of the library,
+            this is only applicable to block blobs on standard storage accounts.
         :param ~azure.storage.blob.models.CustomerProvidedEncryptionKey cpk:
             Encrypts the data on the service-side with the given key.
             Use of customer-provided keys must be done over HTTPS.
@@ -2739,7 +2764,7 @@ class BlobClient(StorageAccountHostsMixin):  # pylint: disable=too-many-public-m
             process_storage_error(error)
 
     def _append_block_options( # type: ignore
-            self, data,  # type: Union[Iterable[AnyStr], IO[AnyStr]]
+            self, data,  # type: Union[AnyStr, Iterable[AnyStr], IO[AnyStr]]
             length=None,  # type: Optional[int]
             validate_content=False,  # type: Optional[bool]
             maxsize_condition=None,  # type: Optional[int]
@@ -2797,7 +2822,7 @@ class BlobClient(StorageAccountHostsMixin):  # pylint: disable=too-many-public-m
 
     @distributed_trace
     def append_block( # type: ignore
-            self, data,  # type: Union[Iterable[AnyStr], IO[AnyStr]]
+            self, data,  # type: Union[AnyStr, Iterable[AnyStr], IO[AnyStr]]
             length=None,  # type: Optional[int]
             validate_content=False,  # type: Optional[bool]
             maxsize_condition=None,  # type: Optional[int]
