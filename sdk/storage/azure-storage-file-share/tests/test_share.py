@@ -303,7 +303,8 @@ class StorageShareTest(StorageTestCase):
 
     @GlobalResourceGroupPreparer()
     @StorageAccountPreparer(random_name_enabled=True, sku='premium_LRS', name_prefix='pyacrstorage')
-    def test_list_shares_no_options_for_premium_account(self, resource_group, location, storage_account, storage_account_key):
+    def test_list_shares_no_options_for_premium_account(self, resource_group, location, storage_account, storage_account_key, storage_account_cs):
+        raise Exception("ACCOUNTS: {}, {}".format(storage_account, storage_account_cs))
         self._setup(storage_account, storage_account_key)
         share = self._create_share()
 
